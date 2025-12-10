@@ -35,7 +35,7 @@ class Simulation:
 
         for t in range(self.cfg.timesteps):
             # delegate time-stepping to the integrator
-            self.state = self.integrator.step(
+            self.state = self.integrator.step(  # passes physics to integrator that is stored as a variable
                 self.state,
                 self.cfg,
                 self.solver.accelerations
