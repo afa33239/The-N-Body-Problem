@@ -5,42 +5,87 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from typing import List
 
-from nbody.bodies import Body, SystemState
-from nbody.physics import compute_accelerations
-from nbody.integrators.euler import EulerIntegrator
+from code.nbody.bodies import Body, SystemState
 
-from nbody.solvers.direct import DirectSolver
+from code.nbody.integrators.euler import EulerIntegrator
+
+from code.nbody.solvers.direct import DirectSolver
+
+from code.nbody.physics import compute_kinetic_energy, compute_potential_energy, compute_angular_momentum
 
 
 class SimulationConfig: 
 
-    def __init__(self, bodies, cfg, integrator=None, solver=None):
+    def __init__(self, dt, timesteps, softening=0.001):
+        self.dt = dt
+        self.timesteps = timesteps
+        self.softening = softening
+
+
+class Simulation:
+
+    def __init__(self, bodies: List[Body], cfg: SimulationConfig, integrator=None, solver=None):
         self.state = SystemState(bodies)
         self.cfg = cfg
         self.integrator = integrator or EulerIntegrator()
         self.solver = solver or DirectSolver()
 
-
-class Simulation:
-
-    def __init__(self, bodies: List[Body], cfg: SimulationConfig, integrator=None):
-        self.state = SystemState(bodies)
-        self.cfg = cfg
-        self.integrator = integrator or EulerIntegrator()
+        self.energy_history = []  #keeps track of energies and angular momentum
+        self.kinetic_history = []
+        self.potential_history = []
+        self.energy_drift = [] #this is used to track relative energy drift over time 
+        self.angular_momentum_history = []
 
     def run(self):
        
-        pss = [None] * (self.cfg.timesteps + 1)
-        pss[0] = self.state.bodies
+        self.state_history = [] #create state history
+
+
+        self.state_history.append(self.state.copy()) #save deep copy of initial state
+
+
+        pss = []
+
+        ps = [(b.x, b.y) for b in self.state.bodies]
+        pss.append(ps)
 
         for t in range(self.cfg.timesteps):
-            # delegate time-stepping to the integrator
-            self.state = self.integrator.step(  # passes physics to integrator that is stored as a variable
+            # delegate time-stepping to the integrator#
+            
+            def accel_fn(bodies): #this is just a wrapper function
+                return self.solver.accelerations(bodies, self.cfg)
+
+            self.state = self.integrator.step(
                 self.state,
                 self.cfg,
-                self.solver.accelerations
+                accel_fn
             )
-            pss[t + 1] = self.state.bodies
+            ps = [(b.x, b.y) for b in self.state.bodies]
+            pss.append(ps)
+
+            self.state_history.append(self.state.copy())
+
+
+
+            #energy
+            K = compute_kinetic_energy(self.state.bodies)
+            self.kinetic_history.append(K)
+            U = compute_potential_energy(self.state.bodies, self.cfg)
+            self.potential_history.append(U)
+
+            E = K + U
+            self.energy_history.append(E)
+
+            if t == 0: 
+                self.E0 = E
+            self.energy_drift.append((E - self.E0) / abs(self.E0)) #energy drift implemented
+
+
+            #angular momentum
+            L = compute_angular_momentum(self.state.bodies)
+            self.angular_momentum_history.append(L)
+
+        
 
         return pss
 

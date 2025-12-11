@@ -3,8 +3,8 @@
 ##it asks the solver for accelerations and uses them to update positions and velocities, then returns the system 
 
 
-from nbody.bodies import Body, SystemState
-from nbody.integrators import Integrator
+from code.nbody.bodies import Body, SystemState
+from code.nbody.integrators import Integrator
 
 
 class EulerIntegrator(Integrator):
@@ -15,7 +15,7 @@ class EulerIntegrator(Integrator):
         dt = cfg.dt
 
         # compute accelerations for all bodies
-        ax, ay = accel_fn(bodies)
+        ax, ay = accel_fn(bodies, cfg)
 
         new_bodies = []
         for i, b in enumerate(bodies):

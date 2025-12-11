@@ -1,0 +1,19 @@
+PHASE 2 SUMMARY
+
+Energy types:
+- Kinetic energy: 1/2 m v^2
+- Potential energy: -G m1 m2 / r
+- Total energy = K + U
+- Angular momentum optional
+
+Energy formulas should live in physics.py.
+
+Simulation should record:
+- energy_history
+- kinetic_history
+- potential_history
+- angular_momentum_history
+
+After each step, Simulation calls physics functions to compute and store energies.
+
+This will be used later to test integrator stability, Barnes–Hut accuracy, and adaptive timestep behavior.
