@@ -11,7 +11,7 @@ from code.nbody.integrators.euler import EulerIntegrator
 
 from code.nbody.solvers.direct import DirectSolver
 
-from code.nbody.physics import compute_kinetic_energy, compute_potential_energy, compute_angular_momentum
+from code.nbody.physics import compute_kinetic_energy, compute_potential_energy, compute_angular_momentum, compute_linear_momentum
 
 
 class SimulationConfig: 
@@ -37,6 +37,9 @@ class Simulation:
 
         self.energy_drift = [] #this is used to track relative energy drift over time 
         self.angular_momentum_drift = []
+
+        self.linear_momentum_history = []
+        self.linear_momentum_drift = []
 
 
     def run(self): #coordinates the simulation
@@ -78,9 +81,11 @@ class Simulation:
         U0 = compute_potential_energy(diag.bodies, self.cfg)
         E0 = K0 + U0
         L0 = compute_angular_momentum(diag.bodies)
+        P0 = compute_linear_momentum(diag.bodies)
 
         self.E0 = E0
         self.L0 = L0
+        self.P0 = P0
 
         self.kinetic_history.append(K0)
         self.potential_history.append(U0)
@@ -89,6 +94,8 @@ class Simulation:
 
         self.angular_momentum_history.append(L0)
         self.angular_momentum_drift.append(0.0)
+        self.linear_momentum_history.append(P0)
+        self.linear_momentum_drift.append((0.0,0.0))
 
         return accel_fn
     
@@ -107,6 +114,8 @@ class Simulation:
         U = compute_potential_energy(diag.bodies, self.cfg)
         E = K + U
         L = compute_angular_momentum(diag.bodies)
+        P = compute_linear_momentum(diag.bodies)
+
 
         self.kinetic_history.append(K)
         self.potential_history.append(U)
@@ -114,7 +123,8 @@ class Simulation:
         self.energy_drift.append((E - self.E0) / abs(self.E0))
 
         self.angular_momentum_history.append(L)
-        self.angular_momentum_drift.append((L - self.L0) / abs(self.L0))
+        self.angular_momentum_drift.append((L - self.A0) / abs(self.L0))
+        self.linear_momentum_history.append(P)
 
 
     def _clear_histories(self): #method to clean the histories before running the simulation
@@ -125,6 +135,8 @@ class Simulation:
         self.angular_momentum_history = []
         self.energy_drift = []
         self.angular_momentum_drift = [] 
+        self.linear_momentum_history = []
+        self.linear_momentum_drift = []
 
 
     def closestDistance(self):

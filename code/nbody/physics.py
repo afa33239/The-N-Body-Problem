@@ -75,4 +75,12 @@ def compute_angular_momentum(bodies):
         total += b.m * (b.x * b.vy - b.y * b.vx)
     return total
 
+def compute_linear_momentum(bodies):
+    px_total = 0.0
+    py_total = 0.0
+    for b in bodies:
+        px_total += b.m * b.vx
+        py_total += b.m * b.vy
+    return (px_total, py_total)
+
 

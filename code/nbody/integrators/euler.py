@@ -15,20 +15,28 @@ class EulerIntegrator(Integrator):
         dt = cfg.dt
 
         # compute accelerations for all bodies
-        ax, ay = accel_fn(bodies, cfg)
+        ax, ay = accel_fn(bodies)
 
         new_bodies = []
         for i, b in enumerate(bodies):
             nb = Body(b.m, b.x, b.y)
 
-            # update positions (same formula as old Simulation.run)
-            nb.x = b.x + dt * b.vx + 0.5 * dt * dt * ax[i]
-            nb.y = b.y + dt * b.vy + 0.5 * dt * dt * ay[i]
 
-            # update velocities
-            nb.vx = (nb.x - b.x) / dt
-            nb.vy = (nb.y - b.y) / dt
+            nb.vx = b.vx + dt * ax[i]
+            nb.vy = b.vy + dt * ay[i]
 
+            nb.x = b.x + dt * b.vx
+            nb.y = b.y + dt * b.vy
+            
             new_bodies.append(nb)
 
         return SystemState(new_bodies)
+    
+
+    def initialize(self, state, cfg, accel_fn):
+        # no special initialization needed for Euler
+        return state
+    
+    def synchronize(self, state, cfg, accel_fn):
+        # no special synchronization needed for Euler
+        return state
