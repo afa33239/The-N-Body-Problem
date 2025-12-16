@@ -63,3 +63,38 @@ Integrator behaves correctly. Conservation laws satisfied to expected numerical 
 
 Next action:
 Compare to Eulers.
+
+
+
+
+
+
+DATE: 14/12/25
+Integrator: Euler (Forward Euler)
+dt, steps, softening: dt = 2e-4, steps = 5000, softening = 0.0
+
+Scenario:
+Two-body Sun–planet system, near-circular orbit.
+Same initial conditions as Leapfrog comparison.
+
+Expected:
+- Energy: secular (linear) drift
+- Angular momentum: secular drift
+- Linear momentum: growing error
+- Center-of-mass: noticeable drift
+
+Observed max energy drift: 1.5 × 10⁻² (linear growth)
+
+Observed max angular momentum drift: 8 × 10⁻³ (linear growth)
+
+Observed max |P| drift: 4 × 10⁻¹⁷
+
+Observed COM drift: 1.5 × 10⁻¹⁷
+
+Conclusion:
+Euler integrator exhibits expected non-conservation of invariants.
+Results clearly contrast with Leapfrog and validate diagnostic framework.
+
+Next action:
+Use Leapfrog as default integrator.
+Proceed to Phase 3 (3D extension).
