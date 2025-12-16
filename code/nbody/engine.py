@@ -51,12 +51,11 @@ class Simulation:
         accel_fn = self._initialize_simulation()
 
         pss = []
-        pss.append([(b.x, b.y) for b in self.state.bodies])
+        pss.append([(b.x, b.y, b.z) for b in self.state.bodies])
 
         for _ in range(self.cfg.timesteps):
             self._step(accel_fn)
-            pss.append([(b.x, b.y) for b in self.state.bodies])
-
+            pss.append([(b.x, b.y, b.z) for b in self.state.bodies])
         return pss
     
 
@@ -74,12 +73,14 @@ class Simulation:
         E0 = K0 + U0
         L0 = compute_angular_momentum(diag.bodies)
         P0 = compute_linear_momentum(diag.bodies)
-        x_cm0, y_cm0 = compute_center_of_mass(diag.bodies)
+        x_cm0, y_cm0, z_cm0 = compute_center_of_mass(diag.bodies)
+        L0_mag = math.sqrt(L0[0]**2 + L0[1]**2 + L0[2]**2)
 
         self.E0 = E0
         self.L0 = L0
         self.P0 = P0
-        self.com0 = (x_cm0, y_cm0)
+        self.com0 = (x_cm0, y_cm0, z_cm0)
+        self.L0_mag = L0_mag
 
         self._update_diagnostics(diag, is_initial=True)
         return accel_fn
@@ -98,7 +99,10 @@ class Simulation:
         E = K + U
         L = compute_angular_momentum(diag.bodies)
         P = compute_linear_momentum(diag.bodies)
-        x_cm, y_cm = compute_center_of_mass(diag.bodies)
+        x_cm, y_cm, z_cm = compute_center_of_mass(diag.bodies)
+
+        L_mag = math.sqrt(L[0]**2 + L[1]**2 + L[2]**2)
+        self.angular_momentum_history.append(L_mag)
 
         self.kinetic_history.append(K)
         self.potential_history.append(U)
@@ -109,22 +113,27 @@ class Simulation:
         else:
             self.energy_drift.append((E - self.E0) / abs(self.E0))
 
-        self.angular_momentum_history.append(L)
-        if abs(self.L0) > 1e-14:
-            self.angular_momentum_drift.append(0.0 if is_initial else (L - self.L0) / abs(self.L0))
+        if is_initial:
+            self.angular_momentum_drift.append(0.0)
         else:
-            self.angular_momentum_drift.append(0.0 if is_initial else abs(L))
+            if self.L0_mag > 1e-14:
+                self.angular_momentum_drift.append(
+                    (L_mag - self.L0_mag) / self.L0_mag
+                )
+            else:
+                self.angular_momentum_drift.append(L_mag)
 
         self.linear_momentum_history.append(P)
-        self.linear_momentum_drift.append(0.0 if is_initial else math.sqrt(P[0] ** 2 + P[1] ** 2))
+        self.linear_momentum_drift.append(0.0 if is_initial else math.sqrt(P[0] ** 2 + P[1] ** 2 + P[2] ** 2))
 
-        self.com_history.append((x_cm, y_cm))
+        self.com_history.append((x_cm, y_cm, z_cm))
         if is_initial:
             self.com_drift.append(0.0)
         else:
             dx = x_cm - self.com0[0]
             dy = y_cm - self.com0[1]
-            self.com_drift.append(math.sqrt(dx * dx + dy * dy))
+            dz = z_cm - self.com0[2]
+            self.com_drift.append(math.sqrt(dx * dx + dy * dy + dz * dz))
 
 
     def _clear_histories(self):
