@@ -76,18 +76,24 @@ def compute_potential_energy(bodies: List[Body],cfg):
 
 
 def compute_angular_momentum(bodies):
-    total = 0.0
+    lx = 0.0
+    ly = 0.0
+    lz = 0.0
     for b in bodies:
-        total += b.m * (b.x * b.vy - b.y * b.vx)
-    return total
+        lx += b.m * (b.y * b.vz - b.z * b.vy)
+        ly += b.m * (b.z * b.vx - b.x * b.vz)
+        lz += b.m * (b.x * b.vy - b.y * b.vx)
+    return (lx, ly, lz)
 
 def compute_linear_momentum(bodies):
     px_total = 0.0
     py_total = 0.0
+    pz_total = 0.0
     for b in bodies:
         px_total += b.m * b.vx
         py_total += b.m * b.vy
-    return (px_total, py_total)
+        pz_total += b.m * b.vz
+    return (px_total, py_total, pz_total)
 
 
 def compute_center_of_mass(bodies):
