@@ -12,6 +12,7 @@ def compute_accelerations(bodies: List[Body], cfg):
 
     ax = [0.0] * N
     ay = [0.0] * N
+    az = [0.0] * N
 
     soft2 = cfg.softening * cfg.softening
 
@@ -22,8 +23,8 @@ def compute_accelerations(bodies: List[Body], cfg):
 
             dx = bj.x - bi.x
             dy = bj.y - bi.y
-
-            r2 = dx * dx + dy * dy + soft2
+            dz = bj.z - bi.z
+            r2 = dx * dx + dy * dy + dz * dz + soft2
             r = r2 ** 0.5
             r3 = r2 * r
 
@@ -32,17 +33,21 @@ def compute_accelerations(bodies: List[Body], cfg):
 
             ax_i = f * bj.m * dx
             ay_i = f * bj.m * dy
+            az_i = f * bj.m * dz
 
             ax_j = -f * bi.m * dx
             ay_j = -f * bi.m * dy
+            az_j = -f * bi.m * dz
 
             ax[i] += ax_i
             ay[i] += ay_i
+            az[i] += az_i
 
             ax[j] += ax_j
             ay[j] += ay_j
+            az[j] += az_j
 
-    return ax, ay
+    return ax, ay, az
 
 
 
