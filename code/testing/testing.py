@@ -9,7 +9,7 @@ sun = Body(1.0, 0, 0, 0, -0.001 * 2 * math.pi)
 planet = Body(0.001, 1, 0, 0, 2 * math.pi)
 
 cfg = SimulationConfig(dt=0.0002, timesteps=5000, softening=0.0)
-sim = Simulation([sun, planet], cfg, integrator=EulerIntegrator())
+sim = Simulation([sun, planet], cfg, integrator=LeapfrogIntegrator())
 sim.run()
 
 plt.figure()
