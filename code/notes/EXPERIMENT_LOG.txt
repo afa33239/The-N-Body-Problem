@@ -35,7 +35,7 @@ Next action: Add explicit linear momentum and center-of-mass drift diagnostics t
 
 
 
-DATE: 14/12/25
+DATE: 16/12/25
 Integrator: Leapfrog (Velocity Verlet)
 dt, steps, softening: dt = 2e-4, steps = 5000, softening = 0.0
 
@@ -69,7 +69,7 @@ Compare to Eulers.
 
 
 
-DATE: 14/12/25
+DATE: 16/12/25
 Integrator: Euler (Forward Euler)
 dt, steps, softening: dt = 2e-4, steps = 5000, softening = 0.0
 
@@ -98,3 +98,40 @@ Results clearly contrast with Leapfrog and validate diagnostic framework.
 Next action:
 Use Leapfrog as default integrator.
 Proceed to Phase 3 (3D extension).
+
+
+
+
+
+
+
+DATE: 16/12/25
+Integrator: Leapfrog (Velocity Verlet, Symplectic)
+dt, steps, softening: dt = 2e-4, steps = 5000, softening = 0.0
+
+Scenario:
+Two-body Sun–planet system in full 3D.
+Initial conditions define a planar near-circular orbit (z = 0, vz = 0), used to validate the 3D extension against the known 2D solution.
+
+Expected:
+- Energy: bounded oscillations, no secular drift
+- Angular momentum (COM frame): conserved to machine precision
+- Linear momentum: 0 up to floating-point noise
+- COM position: no systematic drift
+
+
+Observed max relative energy drift: 1.6 × 10⁻⁹
+
+Observed max angular momentum drift: 2.5 × 10⁻¹⁵
+
+Observed max |P(t)|: 3.5 × 10⁻¹⁷
+
+Observed COM drift: 1.2 × 10⁻¹⁷
+
+Conclusion:
+Leapfrog integrator preserves physical invariants in 3D to machine precision.
+Energy shows bounded oscillations characteristic of symplectic integration.
+Angular momentum magnitude, linear momentum, and center-of-mass remain conserved up to floating-point error, validating the 3D physics, integrator updates, and diagnostic framework.
+
+Next action:
+Extend validation with non-planar 3D orbits (z, vz != 0).
