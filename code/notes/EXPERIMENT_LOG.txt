@@ -295,3 +295,46 @@ System remains stable under Leapfrog, and deviations are consistent with control
 Next actions:
 - Repeat θ sweep for θ = 0.5 and θ = 1.0 using the same N/seed.
 - Record how energy/ang-momentum drift change with θ to characterize accuracy vs approximation strength.
+
+
+
+
+
+
+
+
+DATE: 18/12/25
+
+Integrator: Leapfrog (Velocity Verlet)
+Solvers: Direct O(N²) vs Barnes–Hut Octree (θ = 0.5)
+
+dt, steps, softening: dt = 2e-3, steps = 2000, softening = 1e-3
+
+Scenario:
+Random 3D N-body system (N = 15, seed = 42) with random initial positions, velocities, and masses.
+Same initial conditions used for both solvers.
+
+Expected:
+- Barnes–Hut accuracy should lie between θ = 0.3 and θ = 0.7 cases.
+- Energy remains bounded with step-like changes during close encounters.
+- Angular momentum conservation improves as θ decreases.
+- Center-of-mass drift remains small and approximately linear.
+
+Observed:
+- Relative energy drift:
+  Barnes–Hut (θ = 0.5) shows bounded deviation, intermediate between θ = 0.3 and θ = 0.7.
+- Angular momentum drift:
+  Bounded fluctuations (~10⁻³–10⁻²), smaller than θ = 0.7 and larger than θ = 0.3.
+- |P(t)|:
+  Small bounded noise relative to DirectSolver.
+- Center-of-mass drift:
+  Closely tracks DirectSolver with slightly increased slope compared to θ = 0.3.
+
+Conclusion:
+The θ parameter cleanly controls the Barnes–Hut accuracy–approximation tradeoff.
+All runs remain stable under Leapfrog integration, validating the solver’s correctness.
+
+Next actions:
+- Complete θ sweep with θ = 1.0.
+- Summarize θ-dependent accuracy trends.
+- Transition to Phase 5 (performance and scaling tests).
