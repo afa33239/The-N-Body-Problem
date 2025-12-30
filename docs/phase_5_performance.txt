@@ -1,0 +1,47 @@
+Phase 5 — Performance & Scaling
+
+Goal
+Measure and compare the runtime scaling of the Direct O(N^2) solver and the Barnes–Hut solver,
+and study the tradeoff between performance and accuracy controlled by the Barnes–Hut θ parameter.
+
+Experimental Setup
+- Integrator: Leapfrog (Velocity Verlet)
+- Force law: Newtonian gravity with softening
+- Fixed parameters: same dt, number of steps, and softening for all runs
+- Initial conditions: random 3D systems with fixed random seed
+- Timing method: wall-clock time using time.perf_counter()
+- Hardware: local desktop machine (single-threaded Python)
+
+Metrics Collected
+- Total simulation runtime
+- Maximum relative energy drift
+- Maximum angular momentum drift
+- Maximum center-of-mass drift
+
+Runtime Scaling Results
+- For small N (≈ 50–100), the Direct solver outperforms Barnes–Hut due to lower overhead.
+- Barnes–Hut shows significant overhead from tree construction and recursion at small N.
+- A clear crossover occurs between N ≈ 200–300, beyond which Barnes–Hut becomes dramatically faster.
+- For N ≥ 500, the Direct solver becomes impractical (> 2 minutes runtime), while Barnes–Hut remains usable.
+
+Barnes–Hut θ Tradeoff (N = 1000)
+- θ = 0.3 resulted in impractical runtimes (> 5 minutes) and was omitted at large N.
+- θ = 0.5, 0.7, and 1.0 completed successfully.
+- Larger θ values reduce runtime by allowing more aggressive approximation.
+- Smaller θ values improve accuracy but significantly increase computational cost.
+
+Accuracy Observations
+- All Barnes–Hut runs with Leapfrog integration showed bounded energy behavior.
+- Angular momentum and center-of-mass drift increased smoothly with θ.
+- Observed trends match theoretical expectations of Barnes–Hut approximation error.
+
+Limitations
+- Implementation is pure Python and single-threaded.
+- Tree construction and recursion overhead dominate for small θ.
+- No vectorization or low-level optimization has been applied.
+
+Conclusion
+Phase 5 confirms the expected O(N^2) vs O(N log N) scaling behavior.
+Barnes–Hut becomes advantageous beyond moderate system sizes, with θ providing a clear
+accuracy–performance tradeoff. Practical lower bounds on θ emerge due to Python overhead,
+motivating future optimization work.
