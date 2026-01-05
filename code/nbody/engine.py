@@ -22,6 +22,10 @@ class SimulationConfig:
         self.timesteps = timesteps
         self.softening = softening
 
+        self.record_history: bool = True
+        self.diagnostics_every: int = 1
+        self.enable_diagnostics: bool = True
+
 
 class Simulation:
     def __init__(self, bodies: List[Body], cfg: SimulationConfig, integrator=None, solver=None):
@@ -51,12 +55,15 @@ class Simulation:
         self._clear_histories()
         accel_fn = self._initialize_simulation()
 
-        pss = []
-        pss.append([(b.x, b.y, b.z) for b in self.state.bodies])
-
-        for _ in range(self.cfg.timesteps):
-            self._step(accel_fn)
+        if self.cfg.record_history:
+            pss = []
             pss.append([(b.x, b.y, b.z) for b in self.state.bodies])
+
+        for step in range(self.cfg.timesteps):
+            self._step(accel_fn, step)
+            if pss is not None:
+                pss.append([(b.x, b.y, b.z) for b in self.state.bodies])
+                
         return pss
     
 
@@ -67,31 +74,37 @@ class Simulation:
         self.state = self.integrator.initialize(self.state, self.cfg, accel_fn) #prepares for leapfrog (correct for integrating but not for measuring)
         diag = self.integrator.synchronize(self.state, self.cfg, accel_fn) #this is actually never integrated, only for measuring
 
-        self.state_history.append(diag.copy()) #stores diagnostics
+        if self.cfg.record_history:
+            self.state_history.append(diag.copy()) #stores diagnostics
 
-        K0 = compute_kinetic_energy(diag.bodies)
-        U0 = compute_potential_energy(diag.bodies, self.cfg)
-        E0 = K0 + U0
-        L0 = compute_angular_momentum(diag.bodies)
-        P0 = compute_linear_momentum(diag.bodies)
-        x_cm0, y_cm0, z_cm0 = compute_center_of_mass(diag.bodies)
-        L0_mag = math.sqrt(L0[0]**2 + L0[1]**2 + L0[2]**2)
+        if self.cfg.enable_diagnostics:
+            K0 = compute_kinetic_energy(diag.bodies)
+            U0 = compute_potential_energy(diag.bodies, self.cfg)
+            E0 = K0 + U0
+            L0 = compute_angular_momentum(diag.bodies)
+            P0 = compute_linear_momentum(diag.bodies)
+            x_cm0, y_cm0, z_cm0 = compute_center_of_mass(diag.bodies)
+            L0_mag = math.sqrt(L0[0]**2 + L0[1]**2 + L0[2]**2)
 
-        self.E0 = E0
-        self.L0 = L0
-        self.P0 = P0
-        self.com0 = (x_cm0, y_cm0, z_cm0)
-        self.L0_mag = L0_mag
+            self.E0 = E0
+            self.L0 = L0
+            self.P0 = P0
+            self.com0 = (x_cm0, y_cm0, z_cm0)
+            self.L0_mag = L0_mag
 
-        self._update_diagnostics(diag, is_initial=True)
+            self._update_diagnostics(diag, is_initial=True)
         return accel_fn
     
 
-    def _step(self, accel_fn):
+    def _step(self, accel_fn, step):
         self.state = self.integrator.step(self.state, self.cfg, accel_fn)
         diag = self.integrator.synchronize(self.state, self.cfg, accel_fn)
-        self.state_history.append(diag.copy())
-        self._update_diagnostics(diag)
+
+        if self.cfg.record_history:
+            self.state_history.append(diag.copy())
+
+        if self.cfg.enable_diagnostics and (step + 1) % self.cfg.diagnostics_every == 0:
+            self._update_diagnostics(diag)
 
 
     def _update_diagnostics(self, diag, is_initial=False): #measures the system, stores the raw values and computes drifts 
