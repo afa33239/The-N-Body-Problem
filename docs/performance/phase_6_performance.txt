@@ -275,3 +275,63 @@ Conclusion
 This optimization is effective and should be kept.
 Further Phase 6 work should focus on reducing the cost of the remaining
 Barnes–Hut traversal or transitioning to lower-level optimizations.
+
+
+
+
+--- Phase 6 Final Timing Comparison — Direct vs Barnes–Hut
+
+
+Setup
+Integrator: Leapfrog (Velocity Verlet)
+Solvers: Direct O(N^2) and Barnes–Hut Octree
+Theta: 0.7
+N: 1000
+Steps: 300
+dt: 2e-3
+Softening: 1e-3
+Diagnostics: disabled
+Each solver was run three times using identical initial conditions.
+
+
+Results
+Barnes–Hut runtimes:
+~117.5 s
+~121.5 s
+~123.4 s
+
+Direct solver runtimes:
+~180.4 s
+~184.7 s
+~181.2 s
+
+
+Comparison
+Barnes–Hut consistently outperforms the Direct solver for this configuration.
+Using the best runtimes from each solver, Barnes–Hut is approximately 1.5× faster
+than Direct at N = 1000.
+
+
+Interpretation
+After eliminating redundant Barnes–Hut force evaluations and optimizing tree
+traversal, the Barnes–Hut solver achieves a clear performance advantage over
+the Direct solver at large N.
+Remaining Barnes–Hut cost is dominated by unavoidable tree traversal and
+Python-level recursion overhead.
+
+
+Conclusion
+Phase 6 optimization goals have been met.
+Barnes–Hut now demonstrates both correct behavior and practical performance
+benefits over the Direct solver for sufficiently large systems.
+
+
+Next Steps
+Further performance improvements are possible but would require more invasive
+changes (e.g. iterative traversal, NumPy/Numba acceleration).
+These are deferred to a future optimization phase.
+
+
+
+
+-- Phase 6 End --
