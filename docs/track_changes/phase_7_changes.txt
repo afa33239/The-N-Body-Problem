@@ -1,1 +1,27 @@
 -- This document records high-level changes and decisions made throughout Phase 7. --
+
+
+DATE
+28/01/2026
+[Step A – Scenes] 
+
+WHAT CHANGED:
+- Added code/nbody/scenes.py
+- Implemented two_body, three_body, random_cluster, disk scenes
+
+REASONS:
+- Provide reproducible starting systems for Phase 7 demos
+
+WHAT WORKED:
+- Scenes integrate cleanly with existing Body class
+- Seeded randomness gives reproducible clusters and disks
+
+ISSUES/ FIXES
+- Initial attempt used tuple-based Body constructor (fixed)
+- Adjusted velocity and mass ranges for stability
+
+WHAT HAS BEEN KEPT
+- Function-based scenes instead of classes (simpler design)
+
+NEXT ACTION
+- Implement demo runner (CLI)

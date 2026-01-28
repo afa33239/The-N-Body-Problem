@@ -1,32 +1,54 @@
 -- This document records a brief summary during implementation of Phase 7 that is reviewed at the end of the phase. --
 
 
-PHASE 7 – SUMMARY (Draft)
+[Step A - Predefined Scences]
 
 OBJECTIVE
-- 
+- Introduce predefined simulation scenes to make demonstrations reproducible and easy to run.
+- Provide clear starting systems for testing solvers, integrators, and visualization.
 
 WHAT WAS ADDED
-- 
+- A new scenes module containing predefined initial conditions.
+- Implemented the following scenes:
+  - two_body (simple orbital system)
+  - three_body (chaotic system)
+  - random_cluster (seeded random N-body system)
+  - disk (rotating disk-like system for animation demos)
+- Added helper functions to list scenes and select scenes by name.
 
 VISUALIZATION (PLOTS + ANIMATION)
-- 
+- No visualization implemented at this stage.
+- Scenes were designed with future plotting and animation in mind, especially the disk scene.
 
 INTERFACE (RUNNING THE PROJECT)
-- 
+- Scenes are accessed programmatically via a scene selection function.
+- Scene selection is designed to integrate cleanly with the upcoming command-line runner.
 
 KEY DECISIONS
-- 
+- Used functions instead of classes for scenes to keep the design simple.
+- Kept scenes independent from simulation configuration (dt, steps, solver).
+- Used seeded randomness for reproducibility in random-based scenes.
+- Included a disk scene to support clear and visually appealing animations.
 
 LIMITATIONS
-- 
+- Scene parameters are not yet exposed through a user-facing interface.
+- The disk scene is a simplified model and not physically exact.
 
 HOW TO RUN (FINAL)
-- 
+- Not applicable at this stage (runner script not yet implemented).
 
 RESULTS / EXAMPLES (FINAL)
-- 
+- Not applicable at this stage.
 
 NEXT STEPS
-- 
+- Implement the command-line demo runner.
+- Connect scene selection to solver and integrator selection.
+- Begin adding basic plotting utilities.
+
+LEARNING
+- Improved understanding of flexible function interfaces using **kwargs.
+- Reinforced the importance of reproducibility through seeded randomness.
+- Gained experience separating initial condition logic from simulation and execution logic.
+
+
 
