@@ -25,3 +25,43 @@ WHAT HAS BEEN KEPT
 
 NEXT ACTION
 - Implement demo runner (CLI)
+
+
+DATE
+04/02/2026
+[Step B – Demo Runner (CLI)]
+
+WHAT CHANGED:
+- Added code/nbody/cli.py as the main command-line entry point
+- Implemented run subcommand to execute predefined scenes via argparse
+- Implemented list-scenes subcommand for scene discovery
+- Added argument parsing for scene, solver, integrator, timestep, steps, softening, and Barnes–Hut theta
+- Added input validation for dt and steps
+- Added optional --energy flag to enable energy diagnostics
+- Added placeholder flags for plotting and animation (not implemented yet)
+
+REASONS:
+- Provide a reproducible and user-friendly way to run Phase 7 demos without editing source code
+- Decouple simulation configuration from hardcoded scripts
+- Establish a stable interface for later visualization and plotting steps
+
+WHAT WORKED:
+- CLI integrates cleanly with existing Simulation, solvers, and integrators
+- Scene presets run successfully using sensible default parameters
+- Argument validation prevents invalid or unsafe simulation configurations
+- Help output clearly documents available options and defaults
+
+ISSUES / FIXES:
+- Scenes requiring parameters (e.g. disk, random_cluster) initially failed when called without arguments
+- Fixed by introducing explicit default scene loaders in the CLI
+- Early versions accessed subcommand arguments outside their scope
+- Fixed by restructuring control flow around run and list-scenes
+
+WHAT HAS BEEN KEPT:
+- Single run command with flags rather than multiple configuration subcommands
+- Explicit demo defaults for scenes instead of exposing all scene parameters
+- CLI-focused validation rather than pushing checks into simulation core
+
+NEXT ACTION:
+- Implement plotting utilities (final XY snapshot + energy drift)
+- Wire --plots flag to visualization code (Phase 7 Step C)
