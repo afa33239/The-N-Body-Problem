@@ -124,9 +124,18 @@ class Simulation:
         self.energy_history.append(E)
 
         if is_initial:
+            self.E0 = E
+            self.E_scale = max(abs(E), abs(K) + abs(U), 1e-12)
             self.energy_drift.append(0.0)
+
+            print(f"[diagnostics] E0={self.E0:.6e}, K0={K:.6e}, U0={U:.6e}, E_scale={self.E_scale:.6e}")
         else:
-            self.energy_drift.append((E - self.E0) / abs(self.E0))
+            den = self.E_scale
+            drift = abs(E - self.E0) / den if den > 0 else 0.0
+            self.energy_drift.append(drift)
+
+            if len(self.energy_drift) <= 5:
+                print(f"[diagnostics] step={len(self.energy_drift)-1} E={E:.6e} drift={drift:.6e}")
 
         if is_initial:
             self.angular_momentum_drift.append(0.0)

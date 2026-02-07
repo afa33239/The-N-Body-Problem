@@ -3,6 +3,9 @@ from __future__ import annotations
 import argparse
 from typing import Optional, Sequence
 
+from code.nbody.viz import make_run_dir, save_stepc_outputs
+
+
 from code.nbody.engine import Simulation, SimulationConfig
 from code.nbody.integrators.euler import EulerIntegrator
 from code.nbody.integrators.leapfrog import LeapfrogIntegrator
@@ -138,7 +141,7 @@ def build_parser() -> argparse.ArgumentParser:
     output_group.add_argument(
         "--plots",
         action="store_true",
-        help="Enable diagnostic plots (not implemented yet)",
+        help="Enable diagnostic plots",
     )
     output_group.add_argument(
         "--animate",
@@ -191,9 +194,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 "This may take a long time to run."
             )
 
-        if args.plots or args.animate:
-            print("Note: plotting and animation are not implemented yet (Phase 7 Step C).")
-
         bodies = load_scene(args.scene)
 
         cfg = SimulationConfig(
@@ -201,7 +201,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             timesteps=args.steps,
             softening=args.softening,
         )
-        cfg.enable_diagnostics = args.energy
+        cfg.enable_diagnostics = args.energy or args.plots
 
         sim = Simulation(
             bodies=bodies,
@@ -211,6 +211,32 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         )
 
         sim.run()
+
+        if args.plots:
+            # Create output directory for this run
+            run_dir = make_run_dir(
+                outputs_dir="outputs",
+                scene=args.scene,
+                solver=args.solver,
+                integrator=args.integrator,
+                n=len(sim.state.bodies),
+            )
+
+            title_prefix = (
+                f"{args.scene} | {args.solver} | {args.integrator} | "
+                f"N={len(sim.state.bodies)}"
+            )
+
+            saved_files = save_stepc_outputs(
+                sim,
+                run_dir,
+                title_prefix=title_prefix,
+            )
+
+            print(f"\nPlots saved to: {run_dir}")
+            for path in saved_files:
+                print(f"  - {path.name}")
+
 
         print("\nSimulation complete")
         print(f"Scene:       {args.scene}")
