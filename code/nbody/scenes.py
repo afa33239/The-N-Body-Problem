@@ -50,16 +50,16 @@ def random_cluster(
     n: int,
     seed: int = 0,
     radius: float = 1.0,
-    mass_min: float = 0.5,
-    mass_max: float = 2.0,
-    v_scale: float = 0.05,
+    mass_min: float = 1e-3,
+    mass_max: float = 1e-2,
     softening: float = 1e-2,
+    v_scale: float = 0.05,
     virialize: bool = True,
 ) -> List[Body]:
     """
     Random cloud of bodies.
 
-    If virialize=True, I rescale velocities so it stays roughly bound (more cluster-like).
+    If virialize=True, rescale velocities so it stays roughly bound (more cluster-like).
     """
     rng = random.Random(seed)
     bodies: List[Body] = []
@@ -100,8 +100,8 @@ def disk(
     n: int,
     seed: int = 0,
     radius: float = 5.0,
-    mass: float = 1.0,
-    v_scale: float = 2.5,
+    mass: float = 5e-2,
+    v_scale: float = 0.18,
     thickness: float = 0.05,
 ) -> List[Body]:
     """
@@ -126,26 +126,11 @@ def disk(
 
         bodies.append(Body(mass, x, y, z, vx, vy, 0.0))
 
+
     return bodies
 
 
 def list_scenes() -> List[str]:
-    return ["two_body", "three_body", "cluster", "disk"]
+    return ["two_body", "three_body", "random_cluster", "disk"]
 
 
-def get_scene(name: str, **kwargs) -> List[Body]:
-    name = name.lower().strip()
-
-    if name in ("two_body", "two-body", "two"):
-        return two_body(**kwargs)
-
-    if name in ("three_body", "three-body", "three"):
-        return three_body(**kwargs)
-
-    if name in ("cluster", "random_cluster", "random"):
-        return random_cluster(**kwargs)
-
-    if name in ("disk", "rotating_disk"):
-        return disk(**kwargs)
-
-    raise ValueError(f"Unknown scene '{name}'. Available: {', '.join(list_scenes())}")
