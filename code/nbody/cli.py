@@ -1,21 +1,34 @@
 from __future__ import annotations
 
+"""
+Command-line runner for the N-body project.
+
+This lets you run predefined scenes without editing source code, and optionally
+save plots / animations / 3D snapshots to the outputs/ folder.
+"""
+
 import argparse
 from typing import Optional, Sequence
 
-from code.nbody.viz import make_run_dir, save_stepc_outputs, animate_xy, animate_xyz, save_snapshots_xyz
+from code.nbody import scenes
 from code.nbody.engine import Simulation, SimulationConfig
 from code.nbody.integrators.euler import EulerIntegrator
 from code.nbody.integrators.leapfrog import LeapfrogIntegrator
-from code.nbody.solvers.direct import DirectSolver
 from code.nbody.solvers.barneshut import BarnesHutSolver
-from code.nbody import scenes
-
+from code.nbody.solvers.direct import DirectSolver
+from code.nbody.viz import (
+    animate_xy,
+    animate_xyz,
+    make_run_dir,
+    save_snapshots_xyz,
+    save_stepc_outputs,
+)
 
 SCENES = ("two_body", "three_body", "random_cluster", "disk", "benchmark_cluster")
 SOLVERS = ("direct", "barneshut")
 INTEGRATORS = ("euler", "leapfrog")
 
+# default scene parameters (kept simple so users don't need to edit code)
 SCENE_KWARGS = {
     "two_body": dict(),
     "three_body": dict(),
@@ -24,6 +37,7 @@ SCENE_KWARGS = {
     "benchmark_cluster": dict(n=2500, seed=123, radius=5.0, mass_min=1e-3, mass_max=1e-2, v_scale=0.06, virialize=True),
 }
 
+# run presets (dt/steps/softening/etc.) so `--scene X` looks good without extra flags
 RUN_PRESETS = {
     "two_body": dict(dt=0.002, steps=4000, softening=1e-3, frame_every=5, interval=30),
     "three_body": dict(dt=0.002, steps=6000, softening=1e-3, frame_every=5, interval=30),
@@ -34,26 +48,37 @@ RUN_PRESETS = {
 
 
 def check_dt(value: str) -> float:
+    """
+    argparse type helper for dt.
+    Ensures dt is a valid positive float.
+    """
     try:
-        fvalue = float(value)
+        dt = float(value)
     except ValueError:
         raise argparse.ArgumentTypeError(f"{value} is not a valid float")
-    if fvalue <= 0.0:
-        raise argparse.ArgumentTypeError("dt must be a positive float")
-    return fvalue
+    if dt <= 0.0:
+        raise argparse.ArgumentTypeError("dt must be positive")
+    return dt
 
 
 def check_steps(value: str) -> int:
+    """
+    argparse type helper for steps.
+    Ensures steps is a valid positive integer.
+    """
     try:
-        ivalue = int(value)
+        steps = int(value)
     except ValueError:
         raise argparse.ArgumentTypeError(f"{value} is not a valid integer")
-    if ivalue <= 0:
-        raise argparse.ArgumentTypeError("steps must be a positive integer")
-    return ivalue
+    if steps <= 0:
+        raise argparse.ArgumentTypeError("steps must be positive")
+    return steps
 
 
 def load_scene(name: str):
+    """
+    Loads a predefined scene using default keyword arguments from SCENE_KWARGS.
+    """
     if name not in SCENES:
         raise ValueError(f"Unknown scene '{name}'")
     kwargs = SCENE_KWARGS.get(name, {})
@@ -61,25 +86,42 @@ def load_scene(name: str):
     return fn(**kwargs)
 
 
+def make_solver(name: str, theta: float):
+    """
+    Creates the chosen solver instance.
+    """
+    if name == "direct":
+        return DirectSolver()
+    return BarnesHutSolver(theta=theta)
+
+
+def make_integrator(name: str):
+    """
+    Creates the chosen integrator instance.
+    """
+    if name == "euler":
+        return EulerIntegrator()
+    return LeapfrogIntegrator()
+
+
 def build_parser() -> argparse.ArgumentParser:
+    """
+    Builds the CLI argument parser (run + list-scenes commands).
+    """
     parser = argparse.ArgumentParser(
         description=(
             "N-body simulation command-line interface.\n\n"
-            "Use the `run` command to execute a simulation. "
-            "For full configuration options, run:\n\n"
+            "For all run options:\n"
             "  python -m code.nbody.cli run --help"
         )
     )
 
-    subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subparsers.add_parser(
         "run",
         help="Run a predefined simulation scene",
-        description=(
-            "Run a predefined N-body simulation using a chosen scene, solver, "
-            "and integrator. Defaults are scene-tuned for clean demos."
-        ),
+        description="Run a predefined scene using a chosen solver/integrator. Defaults are tuned per scene.",
     )
 
     scene_group = run_parser.add_argument_group("Scene selection")
@@ -95,40 +137,38 @@ def build_parser() -> argparse.ArgumentParser:
     sim_group.add_argument("--steps", type=check_steps, default=None)
     sim_group.add_argument("--softening", type=float, default=None)
 
-    output_group = run_parser.add_argument_group("Diagnostics and output")
-    output_group.add_argument("--energy", action="store_true")
-    output_group.add_argument("--plots", action="store_true")
-    output_group.add_argument("--animate", action="store_true")
-    output_group.add_argument("--frame-every", type=int, default=None)
-    output_group.add_argument("--interval", type=int, default=None)
-    output_group.add_argument("--save-gif", action="store_true")
-    output_group.add_argument("--save-mp4", action="store_true")
-    output_group.add_argument("--fps", type=int, default=30)
-    output_group.add_argument("--no-show", action="store_true")
-    output_group.add_argument("--animate-3d", action="store_true")
-    output_group.add_argument("--max-3d-n", type=int, default=50)
-    output_group.add_argument("--snapshots", action="store_true")
+    out_group = run_parser.add_argument_group("Diagnostics and output")
+    out_group.add_argument("--energy", action="store_true")
+    out_group.add_argument("--plots", action="store_true")
 
-    subparsers.add_parser("list-scenes", help="List available scenes and their demo presets")
+    out_group.add_argument("--animate", action="store_true")
+    out_group.add_argument("--frame-every", type=int, default=None)
+    out_group.add_argument("--interval", type=int, default=None)
+
+    out_group.add_argument("--save-gif", action="store_true")
+    out_group.add_argument("--save-mp4", action="store_true")
+    out_group.add_argument("--fps", type=int, default=30)
+    out_group.add_argument("--no-show", action="store_true")
+
+    out_group.add_argument("--animate-3d", action="store_true")
+    out_group.add_argument("--max-3d-n", type=int, default=50)
+    out_group.add_argument("--snapshots", action="store_true")
+
+    subparsers.add_parser("list-scenes", help="List available scenes and demo presets")
     return parser
 
 
-def make_solver(name: str, theta: float):
-    if name == "direct":
-        return DirectSolver()
-    return BarnesHutSolver(theta=theta)
-
-
-def make_integrator(name: str):
-    if name == "euler":
-        return EulerIntegrator()
-    return LeapfrogIntegrator()
-
-
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    """
+    Entry point for the CLI.
+
+    - list-scenes: prints available scenes + their presets
+    - run: runs a simulation and optionally saves outputs
+    """
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    # If user just wants to list available scenes
     if args.command == "list-scenes":
         print("Available scenes (demo presets):\n")
         for s in SCENES:
@@ -145,97 +185,148 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print()
         return 0
 
-    if args.command == "run":
-        preset = RUN_PRESETS.get(args.scene, {})
+    if args.command != "run":
+        return 1
 
-        if args.dt is None:
-            args.dt = preset.get("dt", 0.002)
-        if args.steps is None:
-            args.steps = preset.get("steps", 2000)
-        if args.softening is None:
-            args.softening = preset.get("softening", 1e-3)
-        if args.frame_every is None:
-            args.frame_every = preset.get("frame_every", 5)
-        if args.interval is None:
-            args.interval = preset.get("interval", 30)
+    # Load default preset for this scene
+    # If user didn't manually override parameters, use preset values
+    preset = RUN_PRESETS.get(args.scene, {})
 
-        bodies = load_scene(args.scene)
+    if args.dt is None:
+        args.dt = preset.get("dt", 0.002)
 
-        cfg = SimulationConfig(dt=args.dt, timesteps=args.steps, softening=args.softening)
-        cfg.enable_diagnostics = args.energy or args.plots
+    if args.steps is None:
+        args.steps = preset.get("steps", 2000)
 
-        needs_frames = args.animate or args.animate_3d or args.snapshots
-        cfg.record_frames = needs_frames
-        cfg.frame_every = args.frame_every
+    if args.softening is None:
+        args.softening = preset.get("softening", 1e-3)
 
-        sim = Simulation(
-            bodies=bodies,
-            cfg=cfg,
-            integrator=make_integrator(args.integrator),
-            solver=make_solver(args.solver, args.theta),
+    if args.frame_every is None:
+        args.frame_every = preset.get("frame_every", 5)
+
+    if args.interval is None:
+        args.interval = preset.get("interval", 30)
+
+    # Create initial bodies from selected scene
+    bodies = load_scene(args.scene)
+
+    # Build simulation configuration
+    cfg = SimulationConfig(
+        dt=args.dt,
+        timesteps=args.steps,
+        softening=args.softening,
+    )
+
+    # Diagnostics only needed if energy or plots requested
+    cfg.enable_diagnostics = args.energy or args.plots
+
+    # Record frames only if animation or snapshots requested
+    needs_frames = args.animate or args.animate_3d or args.snapshots
+    cfg.record_frames = needs_frames
+    cfg.frame_every = args.frame_every
+
+    # Create and run simulation
+    sim = Simulation(
+        bodies=bodies,
+        cfg=cfg,
+        integrator=make_integrator(args.integrator),
+        solver=make_solver(args.solver, args.theta),
+    )
+
+    sim.run()
+
+    N = len(sim.state.bodies)
+    title = f"{args.scene} | {args.solver} | {args.integrator} | N={N}"
+
+    # Decide whether 3D animation is allowed
+    want_3d = args.animate_3d
+    small_enough = N <= args.max_3d_n
+    fallback_to_snapshots = want_3d and not small_enough
+
+    # Determine if we need an output directory
+    saving_anim = (args.animate or want_3d) and (args.save_gif or args.save_mp4)
+    needs_run_dir = args.plots or saving_anim or args.snapshots or fallback_to_snapshots
+
+    # Create output directory only if we actually need to save something
+    run_dir = None
+    if needs_run_dir:
+        run_dir = make_run_dir("outputs", args.scene, args.solver, args.integrator, N)
+
+    # Save 2D plots if requested
+    if args.plots:
+        saved_files = save_stepc_outputs(sim, run_dir, title_prefix=title)
+        print(f"\nPlots saved to: {run_dir}")
+        for path in saved_files:
+            print(f"  - {path.name}")
+
+    # Handle 3D snapshots
+    # This also runs automatically if user requested 3D animation but N is too large
+    if args.snapshots or fallback_to_snapshots:
+        if fallback_to_snapshots:
+            print(
+                f"\n3D animation disabled (N={N} > {args.max_3d_n}). "
+                "Saving 3D snapshots instead."
+            )
+
+        saved = save_snapshots_xyz(sim, run_dir, title_prefix=title)
+        print(f"3D snapshots saved to: {run_dir}")
+        for p in saved:
+            print(f"  - {p.name}")
+
+    # 2D animation
+    if args.animate:
+        out_path = None
+
+        # Only set output file path if user wants to save
+        if saving_anim:
+            out_path = run_dir / ("anim_xy.gif" if args.save_gif else "anim_xy.mp4")
+
+        saved = animate_xy(
+            sim.frames,
+            out_path=out_path,
+            interval=args.interval,
+            title=title,
+            show=(not args.no_show),
+            fps=args.fps,
         )
 
-        sim.run()
+        # animate_xy returns a path only if something was saved
+        if saved is not None:
+            print(f"Animation saved to: {saved}")
 
-        N = len(sim.state.bodies)
-        title_prefix = f"{args.scene} | {args.solver} | {args.integrator} | N={N}"
+    # 3D animation (only allowed for small N)
+    if want_3d and small_enough:
+        out_path = None
 
-        want_3d = args.animate_3d
-        small_enough = N <= args.max_3d_n
-        fallback_to_snapshots = want_3d and not small_enough
+        if saving_anim:
+            out_path = run_dir / ("anim_xyz.gif" if args.save_gif else "anim_xyz.mp4")
 
-        saving_anim = (args.animate or args.animate_3d) and (args.save_gif or args.save_mp4)
-        needs_run_dir = args.plots or saving_anim or args.snapshots or fallback_to_snapshots
+        saved = animate_xyz(
+            sim.frames,
+            out_path=out_path,
+            interval=args.interval,
+            title=title,
+            show=(not args.no_show),
+            fps=args.fps,
+        )
 
-        run_dir = None
-        if needs_run_dir:
-            run_dir = make_run_dir("outputs", args.scene, args.solver, args.integrator, N)
+        if saved is not None:
+            print(f"3D animation saved to: {saved}")
 
-        if args.plots:
-            saved_files = save_stepc_outputs(sim, run_dir, title_prefix=title_prefix)
-            print(f"\nPlots saved to: {run_dir}")
-            for path in saved_files:
-                print(f"  - {path.name}")
+    # Final summary always prints (not dependent on 3D animation)
+    print("\nSimulation complete")
+    print(f"Scene:       {args.scene}")
+    print(f"Solver:      {args.solver}")
+    print(f"Integrator:  {args.integrator}")
+    print(f"Bodies:      {N}")
+    print(f"Steps:       {args.steps}")
+    print(f"dt:          {args.dt}")
+    print(f"softening:   {args.softening}")
 
-        if args.snapshots or fallback_to_snapshots:
-            if fallback_to_snapshots:
-                print(f"\n3D animation disabled (N={N} > {args.max_3d_n}). Saving 3D snapshots instead.")
-            saved = save_snapshots_xyz(sim, run_dir, title_prefix=title_prefix)
-            print(f"3D snapshots saved to: {run_dir}")
-            for p in saved:
-                print(f"  - {p.name}")
+    if args.energy and sim.energy_history:
+        print(f"Final energy: {sim.energy_history[-1]:.6e}")
 
-        if args.animate:
-            out_path = None
-            if saving_anim:
-                out_path = run_dir / ("anim_xy.gif" if args.save_gif else "anim_xy.mp4")
-            saved = animate_xy(sim.frames, out_path=out_path, interval=args.interval, title=title_prefix, show=(not args.no_show), fps=args.fps)
-            if saved is not None:
-                print(f"Animation saved to: {saved}")
-
-        if want_3d and small_enough:
-            out_path = None
-            if saving_anim:
-                out_path = run_dir / ("anim_xyz.gif" if args.save_gif else "anim_xyz.mp4")
-            saved = animate_xyz(sim.frames, out_path=out_path, interval=args.interval, title=title_prefix, show=(not args.no_show), fps=args.fps)
-            if saved is not None:
-                print(f"3D animation saved to: {saved}")
-
-        print("\nSimulation complete")
-        print(f"Scene:       {args.scene}")
-        print(f"Solver:      {args.solver}")
-        print(f"Integrator:  {args.integrator}")
-        print(f"Bodies:      {N}")
-        print(f"Steps:       {args.steps}")
-        print(f"dt:          {args.dt}")
-        print(f"softening:   {args.softening}")
-
-        if args.energy and sim.energy_history:
-            print(f"Final energy: {sim.energy_history[-1]:.6e}")
-
-        return 0
-
-    return 1
+    return 0
 
 
 if __name__ == "__main__":

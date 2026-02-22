@@ -1,6 +1,12 @@
+"""
+Physics utilities for the N-body simulation.
 
-## This computes the gravitational accelerations + energies on each body due to all others (further physics added here)
-
+Includes:
+- Direct O(N^2) gravitational accelerations
+- Energy calculations
+- Momentum calculations
+- Center of mass
+"""
 
 import math
 from typing import List
@@ -8,6 +14,12 @@ from code.nbody.bodies import Body, G
 
 
 def compute_accelerations(bodies: List[Body], cfg):
+    """
+    Computes gravitational accelerations using direct pairwise interactions.
+
+    Uses softened gravity to avoid singularities at small distances.
+    Returns three lists: ax, ay, az.
+    """
     N = len(bodies)
 
     ax = [0.0] * N
@@ -24,11 +36,12 @@ def compute_accelerations(bodies: List[Body], cfg):
             dx = bj.x - bi.x
             dy = bj.y - bi.y
             dz = bj.z - bi.z
+
             r2 = dx * dx + dy * dy + dz * dz + soft2
             r = r2 ** 0.5
             r3 = r2 * r
 
-            # force magnitude per unit mass
+            # acceleration factor
             f = G / r3
 
             ax_i = f * bj.m * dx
@@ -50,14 +63,22 @@ def compute_accelerations(bodies: List[Body], cfg):
     return ax, ay, az
 
 
-
 def compute_kinetic_energy(bodies: List[Body]):
-    Total = 0.0
+    """
+    Computes total kinetic energy of the system.
+    """
+    total = 0.0
     for b in bodies:
-        Total += 0.5 * b.m * (b.vx ** 2 + b.vy ** 2 + b.vz **2)
-    return Total
+        total += 0.5 * b.m * (b.vx ** 2 + b.vy ** 2 + b.vz ** 2)
+    return total
 
-def compute_potential_energy(bodies: List[Body],cfg):
+
+def compute_potential_energy(bodies: List[Body], cfg):
+    """
+    Computes total gravitational potential energy of the system.
+
+    Uses softened distance to match acceleration model.
+    """
     total = 0.0
     length = len(bodies)
 
@@ -65,52 +86,70 @@ def compute_potential_energy(bodies: List[Body],cfg):
         bi = bodies[i]
         for j in range(i + 1, length):
             bj = bodies[j]
+
             dx = bj.x - bi.x
             dy = bj.y - bi.y
             dz = bj.z - bi.z
 
-            dist = math.sqrt(dx*dx + dy*dy + dz*dz + cfg.softening * cfg.softening)
+            dist = math.sqrt(
+                dx * dx + dy * dy + dz * dz + cfg.softening * cfg.softening
+            )
 
             total += -G * bi.m * bj.m / dist
+
     return total
 
 
-def compute_angular_momentum(bodies):
+def compute_angular_momentum(bodies: List[Body]):
+    """
+    Computes total angular momentum vector of the system.
+    """
     lx = 0.0
     ly = 0.0
     lz = 0.0
+
     for b in bodies:
         lx += b.m * (b.y * b.vz - b.z * b.vy)
         ly += b.m * (b.z * b.vx - b.x * b.vz)
         lz += b.m * (b.x * b.vy - b.y * b.vx)
+
     return (lx, ly, lz)
 
-def compute_linear_momentum(bodies):
+
+def compute_linear_momentum(bodies: List[Body]):
+    """
+    Computes total linear momentum vector of the system.
+    """
     px_total = 0.0
     py_total = 0.0
     pz_total = 0.0
+
     for b in bodies:
         px_total += b.m * b.vx
         py_total += b.m * b.vy
         pz_total += b.m * b.vz
+
     return (px_total, py_total, pz_total)
 
 
-def compute_center_of_mass(bodies):
+def compute_center_of_mass(bodies: List[Body]):
+    """
+    Computes the center of mass of the system.
+    """
     total_mass = 0.0
     x_cm = 0.0
     y_cm = 0.0
     z_cm = 0.0
+
     for b in bodies:
         total_mass += b.m
         x_cm += b.m * b.x
         y_cm += b.m * b.y
         z_cm += b.m * b.z
+
     if total_mass > 0:
         x_cm /= total_mass
         y_cm /= total_mass
         z_cm /= total_mass
+
     return (x_cm, y_cm, z_cm)
-
-
-

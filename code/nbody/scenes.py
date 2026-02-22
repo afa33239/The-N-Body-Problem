@@ -8,9 +8,11 @@ from code.nbody.physics import compute_kinetic_energy, compute_potential_energy
 
 def two_body(separation: float = 1.0, mass: float = 1.0, v: float | None = None):
     """
-    Two bodies set up to orbit each other.
+    Returns a simple 2-body orbit setup.
 
-    If v isn't given, I pick a reasonable orbit speed for my units (G = 4*pi^2).
+    separation: distance between bodies
+    mass: mass of each body
+    v: if None, a default orbit speed is chosen
     """
     if v is None:
         v = math.sqrt(G * mass / (2.0 * separation))
@@ -24,13 +26,14 @@ def two_body(separation: float = 1.0, mass: float = 1.0, v: float | None = None)
 
 def three_body(scale: float = 1.0, mass: float = 1.0) -> List[Body]:
     """
-    Figure-eight three-body setup (good for demos).
+    Returns the classic figure-eight 3-body setup.
 
-    The standard values assume G=1, so I scale velocities to match my G.
+    scale: scales the starting positions
+    mass: mass of each body
     """
     vfac = math.sqrt(G)
 
-    # Standard figure-eight initial condition (for G=1)
+    # Standard figure-eight initial condition (usually quoted for G=1)
     x1, y1 = -0.97000436,  0.24308753
     x2, y2 =  0.97000436, -0.24308753
     x3, y3 =  0.0,         0.0
@@ -59,7 +62,12 @@ def random_cluster(
     """
     Random cloud of bodies.
 
-    If virialize=True, rescale velocities so it stays roughly bound (more cluster-like).
+    n: number of bodies
+    seed: RNG seed for reproducibility
+    radius: initial position spread
+    v_scale: initial velocity range
+
+    If virialize=True, velocities are rescaled so the cluster stays roughly bound.
     """
     rng = random.Random(seed)
     bodies: List[Body] = []
@@ -77,16 +85,18 @@ def random_cluster(
         bodies.append(Body(m, x, y, z, vx, vy, vz))
 
     if virialize:
+        # tiny cfg object so compute_potential_energy can reuse the same softening logic
         class _Cfg:
             def __init__(self, softening: float):
                 self.softening = softening
 
         cfg = _Cfg(softening)
+
         K = compute_kinetic_energy(bodies)
         U = compute_potential_energy(bodies, cfg)
 
+        # aim for 2K ~= |U| by scaling velocities
         if K > 0.0 and U != 0.0:
-            # Aim for 2K ~= |U| by scaling velocities
             s = math.sqrt(abs(U) / (2.0 * K))
             for b in bodies:
                 b.vx *= s
@@ -107,7 +117,7 @@ def disk(
     """
     Simple rotating disk for demos.
 
-    Positions start in a flat disk, and velocities are tangential so it spins.
+    Bodies start in a flat disk, with tangential velocities so it spins.
     """
     rng = random.Random(seed)
     bodies: List[Body] = []
@@ -126,7 +136,6 @@ def disk(
 
         bodies.append(Body(mass, x, y, z, vx, vy, 0.0))
 
-
     return bodies
 
 
@@ -141,7 +150,6 @@ def benchmark_cluster(
 ):
     """
     Large-N cluster intended for performance comparisons.
-    Default parameters aim for a roughly bound system (good for stable demos).
     """
     return random_cluster(
         n=n,
@@ -155,6 +163,7 @@ def benchmark_cluster(
 
 
 def list_scenes() -> List[str]:
+    """
+    Returns a list of available scene names.
+    """
     return ["two_body", "three_body", "random_cluster", "disk", "benchmark_cluster"]
-
-

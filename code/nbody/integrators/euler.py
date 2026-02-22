@@ -1,44 +1,37 @@
-## Implements the Euler integration method for updating the state of the system
-
-##it asks the solver for accelerations and uses them to update positions and velocities, then returns the system 
-
-
 from code.nbody.bodies import Body, SystemState
 from code.nbody.integrators import Integrator
 
 
 class EulerIntegrator(Integrator):
+    """
+    Forward Euler integrator (simple, but can drift in energy over long runs).
+    """
 
-    def step(self, state, cfg, accel_fn):
-        
+    def step(self, state: SystemState, cfg, accel_fn):
         bodies = state.bodies
         dt = cfg.dt
 
-        # compute accelerations for all bodies
+        # accelerations at current positions
         ax, ay, az = accel_fn(bodies)
 
         new_bodies = []
         for i, b in enumerate(bodies):
-            nb = Body(b.m, b.x, b.y, b.z)
+            vx = b.vx + dt * ax[i]
+            vy = b.vy + dt * ay[i]
+            vz = b.vz + dt * az[i]
 
+            x = b.x + dt * b.vx
+            y = b.y + dt * b.vy
+            z = b.z + dt * b.vz
 
-            nb.vx = b.vx + dt * ax[i]
-            nb.vy = b.vy + dt * ay[i]
-            nb.vz = b.vz + dt * az[i]
-
-            nb.x = b.x + dt * b.vx
-            nb.y = b.y + dt * b.vy
-            nb.z = b.z + dt * b.vz
-            
-            new_bodies.append(nb)
+            new_bodies.append(Body(b.m, x, y, z, vx, vy, vz))
 
         return SystemState(new_bodies)
-    
 
-    def initialize(self, state, cfg, accel_fn):
-        # no special initialization needed for Euler
+    def initialize(self, state: SystemState, cfg, accel_fn):
+        # Euler doesn't need any special setup
         return state
-    
-    def synchronize(self, state, cfg, accel_fn):
-        # no special synchronization needed for Euler
+
+    def synchronize(self, state: SystemState, cfg, accel_fn):
+        # Euler doesn't have half-step velocities, so nothing to sync
         return state
